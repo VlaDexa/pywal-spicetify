@@ -10,7 +10,7 @@ pub struct Wal {
 impl Wal {
     pub fn new(home: PathBuf) -> Self {
         let mut config_path = home.clone();
-        let mut cache_path = home.clone();
+        let mut cache_path = home;
         config_path.push(".config/wal/templates/colors-spicetify.ini");
         cache_path.push(".cache/wal/colors-spicetify.ini");
         Wal {
@@ -20,7 +20,7 @@ impl Wal {
     }
 
     pub fn reload(&self) {
-        let _ = process::Command::new("wal")
+        process::Command::new("wal")
             .arg("-w")
             .output()
             .expect("Failed run wal");
@@ -68,10 +68,12 @@ impl Wal {
     pub fn set_config(&self) {
         let path = &self.config_path;
         if !path.exists() {
-            let mut file = match OpenOptions::new().create(true).write(true).open(&path) {
-                Ok(f) => f,
-                Err(e) => panic!("Error opening .config/wal {}", e),
-            };
+            let mut file = OpenOptions::new()
+                .create(true)
+                .truncate(true)
+                .write(true)
+                .open(path)
+                .expect("Error opening .config/wal");
             println!(
                 "Generating colors-spicetify.ini file in {}",
                 &path.display()
@@ -89,23 +91,23 @@ notification       = {color7.strip}
 notification-error = {color8.strip} 
 subtext            = {cursor.strip} 
 text               = {cursor.strip}"#;
-            let _ = file.write_all(content.as_bytes());
+            file.write_all(content.as_bytes())
+                .expect("Error writing to colors-spicetify.ini!");
         }
         self.reload();
     }
 
     pub fn get_config(&self) -> String {
         let path = &self.cache_path;
-        let file = match File::open(&path) {
-            Ok(f) => f,
-            Err(e) => panic!("Error opening colors-spicetify.ini! {}", e),
-        };
+        let file = File::open(path).expect("Error opening colors-spicetify.ini!");
 
         println!("wal config path: {}", path.display());
 
         let mut reader = BufReader::new(file);
         let mut wal_config = String::new();
-        let _ = reader.read_to_string(&mut wal_config);
+        reader
+            .read_to_string(&mut wal_config)
+            .expect("Error reading colors-spicetify.ini!");
         wal_config
     }
 }

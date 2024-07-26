@@ -41,17 +41,14 @@ impl Spicetify {
     }
 
     pub fn write_config(&self, wal_config: Option<String>) {
-        let file = match File::open(&self.config_path) {
-            Ok(file) => file,
-            Err(e) => panic!("Invalid path: {e}"),
-        };
+        let file = File::open(&self.config_path).expect("Invalid path");
 
         let reader = BufReader::new(file);
 
-        let lines: Vec<String> = match reader.lines().collect() {
-            Ok(lines) => lines,
-            Err(e) => panic!("Error reading lines! {}", e),
-        };
+        let lines: Vec<String> = reader
+            .lines()
+            .collect::<Result<_, _>>()
+            .expect("Error reading lines!");
 
         let mut buf: Vec<String> = Vec::new();
         let mut i = 0;
@@ -65,23 +62,22 @@ impl Spicetify {
             buf.push(lines[i].clone());
             i += 1;
         }
-        let mut writer = match OpenOptions::new()
+        let mut writer = OpenOptions::new()
             .write(true)
             .truncate(true)
             .open(&self.config_path)
-        {
-            Ok(w) => w,
-            Err(e) => panic!("Error opening file! {}", e),
-        };
+            .expect("Error opening file!");
 
         let mut content = buf.join("\n");
         if let Some(wal_config) = wal_config {
             content.push_str("\n\n");
             content.push_str("[pywal]");
-            content.push_str("\n");
+            content.push('\n');
             content.push_str(&wal_config);
         }
 
-        let _ = writer.write_all(content.as_bytes());
+        writer
+            .write_all(content.as_bytes())
+            .expect("Error writing to file!");
     }
 }
