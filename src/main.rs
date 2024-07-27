@@ -29,10 +29,7 @@ fn main() {
     println!("You selected the theme: {theme}");
 
     //Only linux support
-    let home = match env::home_dir() {
-        Some(path) => path,
-        None => panic!("unable to locate home directory!"),
-    };
+    let home = env::home_dir().expect("unable to locate home directory!");
 
     let wal = Wal::new(home.clone());
     let spicetify = Spicetify::new(home.clone(), &theme);
